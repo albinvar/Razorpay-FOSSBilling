@@ -1,6 +1,7 @@
 <?php
 
 use FOSSBilling\InjectionAwareInterface;
+use Pimple\Container;
 use Razorpay\Api\Api;
 use Razorpay\Api\Errors\BadRequestError;
 use Razorpay\Api\Errors\Error;
@@ -8,19 +9,16 @@ use Razorpay\Api\Errors\GatewayError;
 use Razorpay\Api\Errors\ServerError;
 use Razorpay\Api\Errors\SignatureVerificationError;
 
+require_once __DIR__ . "/vendor/autoload.php";
+
 /**
- * BoxBilling.
+ * Razorpay Boxbilling Integration.
  *
- * @copyright BoxBilling, Inc (https://www.boxbilling.org)
- * @license   Apache-2.0
- *
- * Copyright BoxBilling, Inc
- * This source file is subject to the Apache-2.0 License that is bundled
- * with this source code in the file LICENSE
+ * @author Albin Varghese
  */
-class Payment_Adapter_RazorPay implements InjectionAwareInterface
+class Payment_Adapter_Razorpay implements InjectionAwareInterface
 {
-    protected Box_Di $di;
+    protected $di;
     private array $config;
 
     public function __construct($config)
@@ -36,12 +34,12 @@ class Payment_Adapter_RazorPay implements InjectionAwareInterface
         }
     }
 
-    public function setDi($di)
+    public function setDi(Container $di): void
     {
         $this->di = $di;
     }
 
-    public function getDi(): Box_Di
+    public function getDi(): ?Container
     {
         return $this->di;
     }
@@ -347,12 +345,12 @@ class Payment_Adapter_RazorPay implements InjectionAwareInterface
     }
 
 
-    public function getCallbackUrl(\Model_PayGateway $pg, $model = null)
+    public function getCallbackUrl(Model_PayGateway $pg, $model = null)
     {
         $p = [
             'bb_gateway_id' => $pg->id,
         ];
-        if ($model instanceof \Model_Invoice) {
+        if ($model instanceof Model_Invoice) {
             $p['bb_invoice_id'] = $model->id;
             $p['bb_invoice_hash'] = $model->hash;
             $p['bb_redirect'] = 1;
