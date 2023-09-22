@@ -1,0 +1,14 @@
+{
+    "name": "albinvar/razorpay-fossbilling",
+    "type": "library",
+    "authors": [
+        {
+            "name": "Albin Varghese",
+            "email": "albinvar@pm.me"
+        }
+    ],
+    "require": {
+        "php": ">=7.3",
+        "ext-json": "*"
+    }
+}
