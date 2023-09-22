@@ -157,10 +157,8 @@ class Payment_Adapter_Razorpay implements InjectionAwareInterface
 
         $success = false;
         $error = "Payment Failed";
-        if (empty($ipn['razorpay_payment_id']) === false)
-        {
-            try
-            {
+        if (empty($ipn['razorpay_payment_id']) === false) {
+            try {
                 $attributes = [
                     'razorpay_order_id' => $_SESSION[$existingOrderSession],
                     'razorpay_payment_id' => $ipn['razorpay_payment_id'],
@@ -169,15 +167,12 @@ class Payment_Adapter_Razorpay implements InjectionAwareInterface
 
                 $this->api->utility->verifyPaymentSignature($attributes);
                 $success =  true;
-            }
-            catch(SignatureVerificationError $e)
-            {
+            } catch(SignatureVerificationError $e) {
                 $error = 'Razorpay Error : ' . $e->getMessage();
             }
         }
 
-        if ($success === true)
-        {
+        if ($success === true) {
             $tx->invoice_id = $invoice->id;
 
             try {
@@ -216,9 +211,7 @@ class Payment_Adapter_Razorpay implements InjectionAwareInterface
             $tx->status = 'processed';
             $tx->updated_at = date('Y-m-d H:i:s');
             $this->di['db']->store($tx);
-        }
-        else
-        {
+        } else {
             $this->logError($e, $tx);
         }
     }
@@ -277,15 +270,14 @@ class Payment_Adapter_Razorpay implements InjectionAwareInterface
         //unset existing order_id stored in session.
 
 
-        if(!isset($_SESSION[$existingOrderSession]))
-        {
+        if(!isset($_SESSION[$existingOrderSession])) {
             $res = $this->api->order->create(
                 [
                     'receipt' => $invoice->serie . sprintf("%05d", $invoice->nr),
                     'amount' => $dataAmount,
                     'currency' => $invoice->currency,
-                    'notes'=> [
-                        'title'=> $title,
+                    'notes' => [
+                        'title' => $title,
                     ]
                 ]
             );
@@ -356,8 +348,8 @@ class Payment_Adapter_Razorpay implements InjectionAwareInterface
         ];
         if ($model instanceof Model_Invoice) {
             $p['bb_invoice_id'] = $model->id;
-            $p['bb_invoice_hash'] = $model->hash;
-            $p['bb_redirect'] = 1;
+            //            $p['bb_invoice_hash'] = $model->hash;
+            //            $p['bb_redirect'] = 1;
         }
         return $this->di['config']['url'].'bb-ipn.php?'.http_build_query($p);
     }
