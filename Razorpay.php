@@ -14,11 +14,14 @@ require_once __DIR__ . "/vendor/autoload.php";
 /**
  * Razorpay Boxbilling Integration.
  *
+ * @property mixed $apiId
  * @author Albin Varghese
  */
 class Payment_Adapter_Razorpay implements InjectionAwareInterface
 {
     protected $di;
+    private $apiId;
+    private Api $api;
     private array $config;
 
     public function __construct($config)
@@ -32,6 +35,16 @@ class Payment_Adapter_Razorpay implements InjectionAwareInterface
         if (!isset($this->config['secret_key'])) {
             throw new Payment_Exception('Payment gateway "Razorpay" is not configured properly. Please update configuration parameter "secret_key" at "Configuration -> Payments".');
         }
+
+        // get keys based on the environment.
+        $this->apiId = ($this->config['test_mode'] === 0) ? $this->get_key_id() : $this->get_test_key_id();
+        $apiSecret = ($this->config['test_mode'] === 0) ? $this->get_secret_key() : $this->get_test_secret_key();
+
+        // Create a new instance for RazorPay SDK.
+        $this->api = new Api($this->apiId, $apiSecret);
+
+        // Check if the RazorPay authentication is successful.
+
     }
 
     public function setDi(Container $di): void
@@ -130,7 +143,6 @@ class Payment_Adapter_Razorpay implements InjectionAwareInterface
 
         // read fields required to verify the payment from ipn.
         $paymentId = $ipn["razorpay_payment_id"];
-        $orderId = $ipn["razorpay_order_id"];
         $signature = $ipn["razorpay_signature"];
 
         // get the current invoice instance.
@@ -140,10 +152,6 @@ class Payment_Adapter_Razorpay implements InjectionAwareInterface
         $invoiceAmountInCents = $this->getAmountInCents($invoice);
         $existingOrderSession = "{$invoice->buyer_email}_{$invoice->serie}_{$invoice->nr}";
 
-        //set api id
-        $keyId = ($this->config['test_mode'] === 0) ? $this->get_key_id() : $this->get_test_key_id();
-        $keySecret = ($this->config['test_mode'] === 0) ? $this->get_secret_key() : $this->get_test_secret_key();
-
         $title = $this->getInvoiceTitle($invoice);
 
 
@@ -151,7 +159,6 @@ class Payment_Adapter_Razorpay implements InjectionAwareInterface
         $error = "Payment Failed";
         if (empty($ipn['razorpay_payment_id']) === false)
         {
-            $api = new Api($keyId, $keySecret);
             try
             {
                 $attributes = [
@@ -160,7 +167,7 @@ class Payment_Adapter_Razorpay implements InjectionAwareInterface
                     'razorpay_signature' => $ipn['razorpay_signature']
                 ];
 
-                $api->utility->verifyPaymentSignature($attributes);
+                $this->api->utility->verifyPaymentSignature($attributes);
                 $success =  true;
             }
             catch(SignatureVerificationError $e)
@@ -174,7 +181,7 @@ class Payment_Adapter_Razorpay implements InjectionAwareInterface
             $tx->invoice_id = $invoice->id;
 
             try {
-                $charge = $api->payment->fetch($paymentId);
+                $charge = $this->api->payment->fetch($paymentId);
                 $tx->txn_status = $charge->status;
                 $tx->txn_id = $charge->id;
                 $tx->type = $charge->method;
@@ -258,13 +265,6 @@ class Payment_Adapter_Razorpay implements InjectionAwareInterface
      */
     protected function _generateForm(Model_Invoice $invoice)
     {
-        // get keys based on the environment.
-        $apiId = ($this->config['test_mode'] === 0) ? $this->get_key_id() : $this->get_test_key_id();
-        $apiSecret = ($this->config['test_mode'] === 0) ? $this->get_secret_key() : $this->get_test_secret_key();
-
-        // Create a new instance for RazorPay SDK.
-        $api = new Api($apiId, $apiSecret);
-
         $dataAmount = $this->getAmountInCents($invoice);
         $settingService = $this->di['mod_service']('System');
         $company = $settingService->getCompany();
@@ -274,10 +274,12 @@ class Payment_Adapter_Razorpay implements InjectionAwareInterface
         // This may lead to the creation of multiple orders on the RazorPay platform.
         // To minimise this, the order created for each invoice is regulated by validating the session.
         $existingOrderSession = "{$invoice->buyer_email}_{$invoice->serie}_{$invoice->nr}";
+        //unset existing order_id stored in session.
+
 
         if(!isset($_SESSION[$existingOrderSession]))
         {
-            $res = $api->order->create(
+            $res = $this->api->order->create(
                 [
                     'receipt' => $invoice->serie . sprintf("%05d", $invoice->nr),
                     'amount' => $dataAmount,
@@ -292,12 +294,12 @@ class Payment_Adapter_Razorpay implements InjectionAwareInterface
         } else {
             $orderId = $_SESSION[$existingOrderSession];
             // Unnecessary, Just to make sure that the order exists.
-            $res = $api->order->fetch($orderId);
+            $res = $this->api->order->fetch($orderId);
             $orderId = $res->id;
         }
 
         $form = '<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-                    <button id="rzp-button1" class="btn btn-primary">Pay with Razorpay</button>
+                    <button id="rzp-button" class="btn btn-primary">Pay with Razorpay</button>
                     <form name="razorpayform" action=":callbackUrl" method="POST"  >
                         <input type="hidden" name="razorpay_payment_id" id="razorpay_payment_id">
                         <input type="hidden" name="razorpay_signature"  id="razorpay_signature" >
@@ -311,26 +313,26 @@ class Payment_Adapter_Razorpay implements InjectionAwareInterface
                     };
                     
                     var rzp = new Razorpay(options);
-                    document.getElementById("rzp-button1").onclick = function(e){
+                    document.getElementById("rzp-button").onclick = function(e){
                         rzp.open();
                         e.preventDefault();
                     }
          </script>';
 
         $optionsArray = [
-            "key"               => $apiId,
+            "key"               => $this->apiId,
             "amount"            => $dataAmount,
-            "name"              => "Wexron Hosting",
-            "description"       => "Leading web hosting platform",
-            "image"             => "https://app.wexronhosting.com/bb-themes/boxbilling/assets/images/wexron.png",
+            "name"              => $company['name'],
+            "image"             => $company['logo_url'],
             "order_id"          => $orderId,
+            "description"       => $existingOrderSession,
         ];
 
         $options = json_encode($optionsArray);
 
         $payGateway = $this->di['db']->findOne('PayGateway', 'gateway = "Razorpay"');
         $bindings = [
-            ':key' => $apiId,
+            ':key' => $this->apiId,
             ':amount' => $dataAmount,
             ':currency' => $invoice->currency,
             ':name' => $company['name'],
