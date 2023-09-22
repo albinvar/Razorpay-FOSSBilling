@@ -53,11 +53,13 @@ class Payment_Adapter_Razorpay implements InjectionAwareInterface
                 'key_id' => [
                     'text', [
                         'label' => 'Key Id:',
+                        'required' => false,
                     ],
                 ],
                 'secret_key' => [
                     'text', [
                         'label' => 'Key Secret:',
+                        'required' => false,
                     ],
                 ],
                 'test_key_id' => [
