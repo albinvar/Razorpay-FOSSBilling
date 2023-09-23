@@ -52,9 +52,6 @@ class Payment_Adapter_Razorpay implements InjectionAwareInterface
 
         // Create a new instance for RazorPay SDK.
         $this->api = new Api($this->apiId, $apiSecret);
-
-        // Check if the RazorPay authentication is successful.
-
     }
 
     public function setDi(Container $di): void
