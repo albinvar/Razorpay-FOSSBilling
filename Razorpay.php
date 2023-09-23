@@ -154,13 +154,12 @@ class Payment_Adapter_Razorpay implements InjectionAwareInterface
 
         $title = $this->getInvoiceTitle($invoice);
 
-
         $success = false;
         $error = "Payment Failed";
         if (empty($ipn['razorpay_payment_id']) === false) {
             try {
                 $attributes = [
-                    'razorpay_order_id' => $_SESSION[$existingOrderSession],
+                    'razorpay_order_id' => $data['get']['rzp_order_id'],
                     'razorpay_payment_id' => $ipn['razorpay_payment_id'],
                     'razorpay_signature' => $ipn['razorpay_signature']
                 ];
@@ -212,6 +211,8 @@ class Payment_Adapter_Razorpay implements InjectionAwareInterface
             $tx->updated_at = date('Y-m-d H:i:s');
             $this->di['db']->store($tx);
         } else {
+            var_dump($e->getMessage());
+            exit();
             $this->logError($e, $tx);
         }
     }
@@ -334,22 +335,23 @@ class Payment_Adapter_Razorpay implements InjectionAwareInterface
             ':order_id' => $orderId,
             ':label' => __('Pay now'),
             ':options' => $options,
-            ':callbackUrl' => $this->getCallbackUrl($payGateway, $invoice),
+            ':callbackUrl' => $this->getCallbackUrl($payGateway, $invoice, $orderId),
         ];
 
         return strtr($form, $bindings);
     }
 
 
-    public function getCallbackUrl(Model_PayGateway $pg, $model = null)
+    public function getCallbackUrl(Model_PayGateway $pg, $model = null, $orderId = null)
     {
         $p = [
             'bb_gateway_id' => $pg->id,
+            'rzp_order_id' => $orderId,
         ];
         if ($model instanceof Model_Invoice) {
             $p['bb_invoice_id'] = $model->id;
-            //            $p['bb_invoice_hash'] = $model->hash;
-            //            $p['bb_redirect'] = 1;
+            $p['bb_invoice_hash'] = $model->hash;
+            $p['bb_redirect'] = 1;
         }
         return $this->di['config']['url'].'bb-ipn.php?'.http_build_query($p);
     }
