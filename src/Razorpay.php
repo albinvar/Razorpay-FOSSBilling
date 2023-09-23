@@ -72,6 +72,11 @@ class Payment_Adapter_Razorpay implements InjectionAwareInterface
         return [
             'supports_one_time_payments' => true,
             'description' => ' You authenticate to the Razorpay API by providing one of your API keys in the request. You can manage your API keys from your account.',
+            'logo' => [
+                'logo' => 'Razorpay.png',
+                'height' => '50px',
+                'width' => '50px',
+            ],
             'form' => [
                 'key_id' => [
                     'text', [
