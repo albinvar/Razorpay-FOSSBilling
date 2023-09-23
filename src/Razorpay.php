@@ -9,7 +9,18 @@ use Razorpay\Api\Errors\GatewayError;
 use Razorpay\Api\Errors\ServerError;
 use Razorpay\Api\Errors\SignatureVerificationError;
 
-require_once __DIR__ . "/vendor/autoload.php";
+
+if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
+    // Development environment
+    require_once __DIR__ . '/../vendor/autoload.php';
+} elseif (file_exists(__DIR__ . '/vendor/autoload.php')) {
+    // Build environment
+    require_once __DIR__ . '/vendor/autoload.php';
+} else {
+    // Handle the case when the autoloader is not found
+    die('Autoloader not found.');
+}
+
 
 /**
  * Razorpay Boxbilling Integration.
