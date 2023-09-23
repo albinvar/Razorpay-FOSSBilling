@@ -11,5 +11,16 @@
         "php": ">=8.0",
         "ext-json": "*",
         "razorpay/razorpay": "2.*"
+    },
+    "config": {
+        "vendor-dir": "./src/vendor",
+        "allow-plugins": {
+            "phpstan/extension-installer": true
+        }
+    },
+    "require-dev": {
+        "phpstan/extension-installer": "^1.3",
+        "phpstan/phpstan-deprecation-rules": "^1.1",
+        "phpstan/phpstan": "^1.10"
     }
 }
