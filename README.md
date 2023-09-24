@@ -3,8 +3,8 @@
   <h1>Razorpay Integration for FOSSBilling</h1>
   <!--   <img src="http://extensions.fossbilling.org/api/extension/Razorpay/badges/version" alt="Extension version"> -->
   <!--   <img src="http://extensions.fossbilling.org/api/extension/Razorpay/badges/min_fossbilling_version" alt="Minimum FOSSBilling version"> -->
-  <img src="https://img.shields.io/packagist/v/albinvar/Razorpay-FOSSBilling?label=version">
-  <img src="https://poser.pugx.org/albinvar/Razorpay-FOSSBilling/downloads">
+  <img src="https://img.shields.io/github/v/release/albinvar/Razorpay-FOSSBilling">
+  <img src="https://img.shields.io/github/downloads/albinvar/Razorpay-FOSSBilling/total">
   <img src="https://img.shields.io/github/repo-size/albinvar/Razorpay-FOSSBilling">
   <img alt="GitHub" src="https://img.shields.io/github/license/albinvar/Razorpay-FOSSBilling">
 </div>
