@@ -64,6 +64,11 @@ class Payment_Adapter_Razorpay implements InjectionAwareInterface
         return $this->di;
     }
 
+    /**
+     * Get the configuration array for the payment gateway.
+     *
+     * @return array
+     */
     public static function getConfig(): array
     {
         return [
@@ -166,6 +171,7 @@ class Payment_Adapter_Razorpay implements InjectionAwareInterface
 
         $title = $this->getInvoiceTitle($invoice);
 
+
         $success = false;
         $error = "Payment Failed";
         if (empty($ipn['razorpay_payment_id']) === false) {
@@ -182,6 +188,7 @@ class Payment_Adapter_Razorpay implements InjectionAwareInterface
                 $error = 'Razorpay Error : ' . $e->getMessage();
             }
         }
+
 
         if ($success === true) {
             $tx->invoice_id = $invoice->id;
@@ -213,7 +220,7 @@ class Payment_Adapter_Razorpay implements InjectionAwareInterface
                 $invoiceService->doBatchPayWithCredits(['client_id' => $client->id]);
 
                 //unset existing order_id stored in session.
-                unset($_SESSION[$existingOrderSession]);
+                //unset($_SESSION[$existingOrderSession])
 
             } catch (ServerError|SignatureVerificationError|BadRequestError|GatewayError|Error $e) {
                 $this->logError($e, $tx);
@@ -223,8 +230,6 @@ class Payment_Adapter_Razorpay implements InjectionAwareInterface
             $tx->updated_at = date('Y-m-d H:i:s');
             $this->di['db']->store($tx);
         } else {
-            var_dump($e->getMessage());
-            exit();
             $this->logError($e, $tx);
         }
     }
@@ -303,26 +308,25 @@ class Payment_Adapter_Razorpay implements InjectionAwareInterface
             $orderId = $res->id;
         }
 
-        $form = '<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-                    <button id="rzp-button" class="btn btn-primary">Pay with Razorpay</button>
-                    <form name="razorpayform" action=":callbackUrl" method="POST"  >
-                        <input type="hidden" name="razorpay_payment_id" id="razorpay_payment_id">
-                        <input type="hidden" name="razorpay_signature"  id="razorpay_signature" >
-                    </form>
-                  <script>
-                    var options = :options
-                    options.handler = function (response){
-                        document.getElementById("razorpay_payment_id").value = response.razorpay_payment_id;
-                        document.getElementById("razorpay_signature").value = response.razorpay_signature;
-                        document.razorpayform.submit();
-                    };
-                    
-                    var rzp = new Razorpay(options);
-                    document.getElementById("rzp-button").onclick = function(e){
-                        rzp.open();
-                        e.preventDefault();
-                    }
-         </script>';
+        $form = '<script src="https://checkout.razorpay.com/v1/checkout.js"></script>' . "\n";
+        $form .= '<button id="rzp-button" class="btn btn-primary">Pay with Razorpay</button>' . "\n";
+        $form .= '<form name="razorpayform" action=":callbackUrl" method="POST">' . "\n";
+        $form .= '    <input type="hidden" name="razorpay_payment_id" id="razorpay_payment_id">' . "\n";
+        $form .= '    <input type="hidden" name="razorpay_signature" id="razorpay_signature">' . "\n";
+        $form .= '</form>' . "\n";
+        $form .= '<script>' . "\n";
+        $form .= '    var options = :options;' . "\n";
+        $form .= '    options.handler = function (response) {' . "\n";
+        $form .= '        document.getElementById("razorpay_payment_id").value = response.razorpay_payment_id;' . "\n";
+        $form .= '        document.getElementById("razorpay_signature").value = response.razorpay_signature;' . "\n";
+        $form .= '        document.razorpayform.submit();' . "\n";
+        $form .= '    };' . "\n";
+        $form .= '    var rzp = new Razorpay(options);' . "\n";
+        $form .= '    document.getElementById("rzp-button").onclick = function (e) {' . "\n";
+        $form .= '        rzp.open();' . "\n";
+        $form .= '        e.preventDefault();' . "\n";
+        $form .= '    }' . "\n";
+        $form .= '</script>';
 
         $optionsArray = [
             "key"               => $this->apiId,
