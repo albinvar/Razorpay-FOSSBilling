@@ -211,11 +211,37 @@ class Payment_Adapter_Razorpay implements InjectionAwareInterface
                 $clientService->addFunds($client, $bd['amount'], $bd['description'], $bd);
 
                 $invoiceService = $this->di['mod_service']('Invoice');
-                if ($tx->invoice_id) {
-                    $invoiceService->payInvoiceWithCredits($invoice);
+
+                // Check if this is a wallet top-up invoice — skip auto-pay if so
+                $isWalletTopUp = false;
+                $invoiceItems = $this->di['db']->getAll(
+                    'SELECT title FROM invoice_item WHERE invoice_id = :id',
+                    [':id' => $invoice->id]
+                );
+                foreach ($invoiceItems as $item) {
+                    if (stripos($item['title'], 'add funds') !== false || stripos($item['title'], 'Add funds to account') !== false) {
+                        $isWalletTopUp = true;
+                        break;
+                    }
                 }
 
-                $invoiceService->doBatchPayWithCredits(['client_id' => $client->id]);
+                if ($tx->invoice_id && !$isWalletTopUp) {
+                    $invoiceService->payInvoiceWithCredits($invoice);
+                } elseif ($isWalletTopUp) {
+                    // Mark the "Add funds" invoice as paid directly via transaction
+                    // without consuming wallet credits
+                    $invoice->status = 'paid';
+                    $invoice->paid_at = date('Y-m-d H:i:s');
+                    $invoice->updated_at = date('Y-m-d H:i:s');
+                    $this->di['db']->store($invoice);
+
+                    // Now auto-pay any OTHER pending invoices using the newly added wallet balance
+                    $invoiceService->doBatchPayWithCredits(['client_id' => $client->id]);
+                }
+
+                if (!$isWalletTopUp) {
+                    $invoiceService->doBatchPayWithCredits(['client_id' => $client->id]);
+                }
 
                 //unset existing order_id stored in session.
                 //unset($_SESSION[$existingOrderSession])
